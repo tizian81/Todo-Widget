@@ -21,10 +21,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: APK bauen
+      - name: Apps Script testen
+        run: node apps-script/test/code.test.js
+
+      - name: App testen und APK bauen
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew testReleaseUnitTest assembleRelease --no-daemon --stacktrace
 
       - name: APK umbenennen
         run: cp app/build/outputs/apk/release/app-release.apk TodoWidget.apk

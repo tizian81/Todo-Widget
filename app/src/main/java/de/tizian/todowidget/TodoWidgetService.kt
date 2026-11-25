@@ -25,7 +25,7 @@ class TodoWidgetService : RemoteViewsService() {
             val views = RemoteViews(ctx.packageName, R.layout.widget_item)
             val text = items.getOrNull(position) ?: return views
             // Welches Vorkommen bei gleichlautenden Aufgaben (0 = erstes)
-            val n = items.take(position).count { it == text }
+            val n = TaskLogic.occurrence(items, position)
             views.setTextViewText(R.id.text, text)
             views.setImageViewResource(
                 R.id.check,

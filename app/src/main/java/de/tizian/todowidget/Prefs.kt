@@ -21,8 +21,15 @@ object Prefs {
      * Eine Aktion für das Script.
      * @param n       welches Vorkommen bei gleichlautenden Aufgaben (0 = erstes)
      * @param newText neuer Text (nur bei „edit“)
+     * @param id      eindeutige Kennung, damit das Script Wiederholungen erkennt
      */
-    data class Op(val action: String, val text: String, val n: Int = 0, val newText: String = "")
+    data class Op(
+        val action: String,
+        val text: String,
+        val n: Int = 0,
+        val newText: String = "",
+        val id: String = java.util.UUID.randomUUID().toString()
+    )
 
     private fun p(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -91,7 +98,7 @@ object Prefs {
             val arr = JSONArray(raw)
             (0 until arr.length()).map {
                 val o = arr.getJSONObject(it)
-                Op(o.getString("a"), o.getString("t"), o.optInt("n", 0), o.optString("x", ""))
+                Op(o.getString("a"), o.getString("t"), o.optInt("n", 0), o.optString("x", ""), o.optString("i", ""))
             }
         } catch (e: Exception) {
             emptyList()
@@ -101,7 +108,7 @@ object Prefs {
     private fun savePending(ctx: Context, ops: List<Op>) {
         val arr = JSONArray()
         ops.forEach {
-            arr.put(JSONObject().put("a", it.action).put("t", it.text).put("n", it.n).put("x", it.newText))
+            arr.put(JSONObject().put("a", it.action).put("t", it.text).put("n", it.n).put("x", it.newText).put("i", it.id))
         }
         p(ctx).edit().putString(PENDING, arr.toString()).commit()
     }

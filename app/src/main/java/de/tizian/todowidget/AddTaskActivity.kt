@@ -47,7 +47,7 @@ class AddTaskActivity : Activity() {
             val shared = intent.getStringExtra(Intent.EXTRA_TEXT)
                 ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
             if (!shared.isNullOrBlank()) {
-                val oneLine = shared.trim().replace(Regex("\\s+"), " ")
+                val oneLine = TaskLogic.normalize(shared)
                 input.setText(oneLine)
                 input.setSelection(oneLine.length)
             }
@@ -56,7 +56,7 @@ class AddTaskActivity : Activity() {
         var confirmedDuplicate: String? = null
 
         fun submit() {
-            val text = input.text.toString().trim().replace(Regex("\\s+"), " ")
+            val text = TaskLogic.normalize(input.text.toString())
             if (text.isEmpty()) return
             if (editing && text == original) { finish(); return }
             if (!Prefs.isConfigured(this)) {
@@ -66,9 +66,7 @@ class AddTaskActivity : Activity() {
             }
 
             // Doppelte Aufgabe? Erst warnen, beim zweiten Tippen trotzdem eintragen
-            val others = Prefs.tasks(this).toMutableList()
-            if (editing) others.remove(original)
-            val duplicate = others.any { it.equals(text, ignoreCase = true) }
+            val duplicate = TaskLogic.isDuplicate(Prefs.tasks(this), text, if (editing) original else null)
             if (duplicate && confirmedDuplicate != text) {
                 confirmedDuplicate = text
                 error.text = getString(R.string.duplicate_warning)

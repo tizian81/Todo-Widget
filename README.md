@@ -6,7 +6,13 @@ Android-Widget für deine Google-Docs-To-Do-Liste: anzeigen, abhaken (verschiebt
 
 1. https://script.google.com → **Neues Projekt**, Namen z. B. „To-Do Widget“ vergeben.
 2. Inhalt von `apps-script/Code.gs` komplett in `Code.gs` einfügen.
-3. Bei `SECRET` einen eigenen langen Zufallsschlüssel eintragen (mind. 30 Zeichen, nur Buchstaben und Zahlen, z. B. aus einem Passwortmanager). Speichern.
+3. Speichern. Im Code selbst nichts ändern.
+   Dann links **Projekteinstellungen** (Zahnrad) → ganz unten **Skripteigenschaften** → **Skripteigenschaft hinzufügen**:
+   - `SECRET` = eigener langer Zufallsschlüssel (mind. 30 Zeichen, nur Buchstaben und Zahlen, z. B. aus einem Passwortmanager)
+   - `DOC_ID` = ID deines To-Do-Docs (aus `docs.google.com/document/d/<ID>/edit`)
+   - optional `ERLEDIGT_TAGE` = nach wie vielen Tagen Erledigtes gelöscht wird (Standard 30, `0` = nie)
+
+   → **Skripteigenschaften speichern**.
 4. **Bereitstellen → Neue Bereitstellung** → Zahnrad → **Web-App**
    - Ausführen als: **Ich**
    - Zugriff: **Jeder**
@@ -16,7 +22,8 @@ Android-Widget für deine Google-Docs-To-Do-Liste: anzeigen, abhaken (verschiebt
 
 Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":true,"open":[…]}` zeigen.
 
-**Script später ändern:** Bereitstellen → Bereitstellungen verwalten → Stift → Version „Neue Version“ → Bereitstellen. So bleibt die URL gleich.
+**Script später ändern:** Code komplett ersetzen und speichern (Schlüssel und Doc-ID stehen in den Skripteigenschaften und bleiben erhalten) → Bereitstellen → Bereitstellungen verwalten → Stift → Version „Neue Version“ → Bereitstellen. So bleibt die URL gleich.
+Ist das Script älter als die App, zeigt das Widget „⚠ Apps Script aktualisieren“; Änderungen bleiben bis dahin in der Warteschlange.
 
 ## 2. APK über GitHub bauen
 
@@ -50,6 +57,7 @@ Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":tru
 
 - Erledigte Aufgaben werden im Doc durchgestrichen. Bestehende Einträge einmalig per Funktion `erledigteDurchstreichen` im Script-Editor durchstreichen.
 - Das Doc muss die Überschriften „Offen“ und „Erledigt“ behalten, Aufgaben sind Aufzählungspunkte darunter.
-- Wer URL **und** Schlüssel kennt, kann die Liste lesen und ändern. Schlüssel also nicht weitergeben. Neuer Schlüssel: in `Code.gs` ändern, neue Version bereitstellen, in der App neu eintragen.
+- Wer URL **und** Schlüssel kennt, kann die Liste lesen und ändern. Schlüssel also nicht weitergeben. Neuer Schlüssel: Skripteigenschaft `SECRET` ändern, in der App neu eintragen. Die App sendet den Schlüssel per POST, nicht in der URL.
+- Erledigte Einträge werden nach `ERLEDIGT_TAGE` (Standard 30) automatisch gelöscht (höchstens einmal täglich geprüft). Wiederherstellen über Datei → Versionsverlauf im Doc.
 - Signaturschlüssel liegt in `app/signing.keystore`, damit Updates sich über die alte Version installieren lassen. Repo deshalb privat lassen.
 - Updates: geänderte Dateien im Repo hochladen → neue APK unter Releases → einfach drüber installieren.

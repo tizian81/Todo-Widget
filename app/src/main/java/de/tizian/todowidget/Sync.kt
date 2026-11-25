@@ -19,7 +19,7 @@ object Sync {
     /** Neue Aktion merken, lokal anwenden und Nachholen einplanen. */
     fun enqueue(ctx: Context, op: Prefs.Op) {
         Prefs.addPending(ctx, op)
-        Prefs.setTasksLocal(ctx, apply(Prefs.tasks(ctx), op))
+        Prefs.setTasksLocal(ctx, TaskLogic.apply(Prefs.tasks(ctx), op))
         schedule(ctx)
     }
 
@@ -55,29 +55,10 @@ object Sync {
 
         val list = latest ?: Api.list(ctx)
         // Was inzwischen neu hinzukam, lokal oben drauf anwenden
-        val shown = Prefs.pending(ctx).fold(list) { acc, op -> apply(acc, op) }
+        val shown = Prefs.pending(ctx).fold(list) { acc, op -> TaskLogic.apply(acc, op) }
         Prefs.saveTasks(ctx, shown)
         dropped?.let { throw it }
         return shown
-    }
-
-    private fun apply(list: List<String>, op: Prefs.Op): List<String> = when (op.action) {
-        "add", "uncomplete" -> list + op.text
-        "complete" -> {
-            val i = nthIndex(list, op.text, op.n)
-            if (i < 0) list else list.filterIndexed { idx, _ -> idx != i }
-        }
-        "edit" -> {
-            val i = nthIndex(list, op.text, op.n)
-            if (i < 0) list else list.mapIndexed { idx, t -> if (idx == i) op.newText else t }
-        }
-        else -> list
-    }
-
-    /** Position des n-ten Vorkommens von [text] (sonst des ersten, sonst -1). Wie im Script. */
-    private fun nthIndex(list: List<String>, text: String, n: Int): Int {
-        val hits = list.indices.filter { list[it] == text }
-        return hits.getOrNull(n) ?: hits.firstOrNull() ?: -1
     }
 
     /** Regelmäßig im Hintergrund aktualisieren (alle 15 Min., nur mit Netz). */

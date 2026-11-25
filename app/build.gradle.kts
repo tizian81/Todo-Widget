@@ -11,8 +11,8 @@ android {
         applicationId = "de.tizian.todowidget"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     // Fester Schlüssel, damit spätere Versionen über die alte installiert werden können
@@ -41,8 +41,16 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     lint {
         checkReleaseBuilds = false
         abortOnError = false
     }
+}
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
 }
