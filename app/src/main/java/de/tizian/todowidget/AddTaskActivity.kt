@@ -1,13 +1,13 @@
 package de.tizian.todowidget
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import kotlin.concurrent.thread
 
 class AddTaskActivity : Activity() {
 
@@ -22,6 +22,17 @@ class AddTaskActivity : Activity() {
 
         findViewById<Button>(R.id.btn_cancel).setOnClickListener { finish() }
 
+        // Über „Teilen“ aus einer anderen App aufgerufen: Text vorbelegen
+        if (intent?.action == Intent.ACTION_SEND) {
+            val shared = intent.getStringExtra(Intent.EXTRA_TEXT)
+                ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+            if (!shared.isNullOrBlank()) {
+                val oneLine = shared.trim().replace(Regex("\\s+"), " ")
+                input.setText(oneLine)
+                input.setSelection(oneLine.length)
+            }
+        }
+
         fun submit() {
             val text = input.text.toString().trim()
             if (text.isEmpty()) return
@@ -30,25 +41,14 @@ class AddTaskActivity : Activity() {
                 error.visibility = View.VISIBLE
                 return
             }
-            ok.isEnabled = false
-            input.isEnabled = false
-            error.visibility = View.GONE
-            thread {
-                try {
-                    Api.add(this, text)
-                    runOnUiThread {
-                        TodoWidgetProvider.updateAll(this)
-                        finish()
-                    }
-                } catch (e: Exception) {
-                    runOnUiThread {
-                        error.text = e.message ?: "Fehler"
-                        error.visibility = View.VISIBLE
-                        ok.isEnabled = true
-                        input.isEnabled = true
-                    }
-                }
-            }
+            // Sofort lokal übernehmen; gesendet wird im Hintergrund (auch offline)
+            Sync.enqueue(this, "add", text)
+            TodoWidgetProvider.updateAll(this)
+            sendBroadcast(
+                Intent(this, TodoWidgetProvider::class.java)
+                    .setAction(TodoWidgetProvider.ACTION_REFRESH)
+            )
+            finish()
         }
 
         ok.setOnClickListener { submit() }

@@ -123,10 +123,29 @@ function addTo_(body, name, text, template) {
     (itemsUnder_(body, 'offen')[0] || itemsUnder_(body, 'erledigt')[0] || {}).el || null;
   const pos = items.length ? items[items.length - 1].index + 1 : h + 1;
 
+  let li;
   if (tpl) {
-    const li = body.insertListItem(pos, tpl.copy());
+    li = body.insertListItem(pos, tpl.copy());
     li.setText(text);
   } else {
-    body.insertListItem(pos, text).setGlyphType(DocumentApp.GlyphType.BULLET);
+    li = body.insertListItem(pos, text).setGlyphType(DocumentApp.GlyphType.BULLET);
   }
+  // Erledigtes durchgestrichen, Offenes normal
+  li.editAsText().setStrikethrough(name === 'erledigt');
+  return li;
+}
+
+/**
+ * Einmalig von Hand ausführen (im Editor oben auswählen → „Ausführen“):
+ * streicht alle Einträge unter „Erledigt“ durch und entfernt das
+ * Durchstreichen bei allen Einträgen unter „Offen“.
+ */
+function erledigteDurchstreichen() {
+  const body = DocumentApp.openById(DOC_ID).getBody();
+  itemsUnder_(body, 'erledigt').forEach(function (x) {
+    if (x.el.getText().length) x.el.editAsText().setStrikethrough(true);
+  });
+  itemsUnder_(body, 'offen').forEach(function (x) {
+    if (x.el.getText().length) x.el.editAsText().setStrikethrough(false);
+  });
 }

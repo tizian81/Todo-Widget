@@ -27,7 +27,7 @@ class MainActivity : Activity() {
             result.text = "Verbinde …"
             thread {
                 val msg = try {
-                    val tasks = Api.list(this)
+                    val tasks = Sync.run(this)
                     "✓ Verbunden – ${tasks.size} offene Aufgabe(n)"
                 } catch (e: Exception) {
                     "✗ ${e.message}"

@@ -15,4 +15,5 @@
     <string name="save_test">Speichern &amp; testen</string>
     <string name="refresh">Aktualisieren</string>
     <string name="undo">Rückgängig</string>
+    <string name="share_label">Zur To-Do-Liste</string>
 </resources>

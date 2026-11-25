@@ -3,6 +3,7 @@ package de.tizian.todowidget
 import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
+import org.json.JSONObject
 
 object Prefs {
     private const val FILE = "todo_widget"
@@ -13,6 +14,9 @@ object Prefs {
     private const val ERROR = "last_error"
     private const val DONE = "recently_done"
     private const val DONE_MAX = 10
+    private const val PENDING = "pending_ops"
+
+    data class Op(val action: String, val text: String)
 
     private fun p(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -71,6 +75,37 @@ object Prefs {
         if (list.isEmpty()) return null
         p(ctx).edit().putString(DONE, JSONArray(list.dropLast(1)).toString()).commit()
         return list.last()
+    }
+
+    /** Noch nicht ans Script geschickte Aktionen, älteste zuerst. */
+    @Synchronized
+    fun pending(ctx: Context): List<Op> {
+        val raw = p(ctx).getString(PENDING, "[]") ?: "[]"
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map {
+                val o = arr.getJSONObject(it)
+                Op(o.getString("a"), o.getString("t"))
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun savePending(ctx: Context, ops: List<Op>) {
+        val arr = JSONArray()
+        ops.forEach { arr.put(JSONObject().put("a", it.action).put("t", it.text)) }
+        p(ctx).edit().putString(PENDING, arr.toString()).commit()
+    }
+
+    @Synchronized
+    fun addPending(ctx: Context, op: Op) = savePending(ctx, pending(ctx) + op)
+
+    /** Entfernt die erste Aktion, sofern sie noch [op] ist. */
+    @Synchronized
+    fun removeFirstPending(ctx: Context, op: Op) {
+        val ops = pending(ctx)
+        if (ops.firstOrNull() == op) savePending(ctx, ops.drop(1))
     }
 
     fun updatedAt(ctx: Context): Long = p(ctx).getLong(UPDATED, 0L)

@@ -37,6 +37,8 @@ Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":tru
 
 - Aufgabe antippen → abgehakt (wandert im Doc nach „Erledigt“)
 - **+** → neue Aufgabe
+- **Teilen** aus einer anderen App → „Zur To-Do-Liste“ → Text prüfen → Hinzufügen
+- Ohne Netz: Abhaken/Hinzufügen funktioniert trotzdem, oben steht „N ausstehend“; wird automatisch nachgeholt, sobald wieder Netz da ist
 - **↶** → letzte abgehakte Aufgabe zurück nach „Offen“ (erscheint nach dem Abhaken, merkt sich die letzten 10)
 - **↻** → aktualisieren (sonst automatisch alle 30 Min.)
 - „To-Do“-Titel antippen → Einstellungen
@@ -44,6 +46,7 @@ Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":tru
 
 ## Hinweise
 
+- Erledigte Aufgaben werden im Doc durchgestrichen. Bestehende Einträge einmalig per Funktion `erledigteDurchstreichen` im Script-Editor durchstreichen.
 - Das Doc muss die Überschriften „Offen“ und „Erledigt“ behalten, Aufgaben sind Aufzählungspunkte darunter.
 - Wer URL **und** Schlüssel kennt, kann die Liste lesen und ändern. Schlüssel also nicht weitergeben. Neuer Schlüssel: in `Code.gs` ändern, neue Version bereitstellen, in der App neu eintragen.
 - Signaturschlüssel liegt in `app/signing.keystore`, damit Updates sich über die alte Version installieren lassen. Repo deshalb privat lassen.

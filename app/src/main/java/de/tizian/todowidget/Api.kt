@@ -8,24 +8,23 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-class ApiException(message: String) : Exception(message)
+/**
+ * @param retry true = vorübergehendes Problem (Netz, Server, Einstellungen),
+ *              die Aktion bleibt in der Warteschlange und wird später wiederholt.
+ */
+class ApiException(message: String, val retry: Boolean = true) : Exception(message)
 
 /**
  * Spricht mit dem Google Apps Script. Jede Antwort enthält die aktuelle
- * Liste der offenen Aufgaben, die direkt im Cache landet.
+ * Liste der offenen Aufgaben. Gespeichert wird sie von [Sync].
  */
 object Api {
 
     fun list(ctx: Context): List<String> = call(ctx, mapOf("action" to "list"))
 
-    fun add(ctx: Context, text: String): List<String> =
-        call(ctx, mapOf("action" to "add", "text" to text))
-
-    fun complete(ctx: Context, text: String): List<String> =
-        call(ctx, mapOf("action" to "complete", "text" to text))
-
-    fun uncomplete(ctx: Context, text: String): List<String> =
-        call(ctx, mapOf("action" to "uncomplete", "text" to text))
+    /** action = add | complete | uncomplete */
+    fun send(ctx: Context, action: String, text: String): List<String> =
+        call(ctx, mapOf("action" to action, "text" to text))
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
@@ -61,13 +60,13 @@ object Api {
             }
             if (!json.optBoolean("ok", false)) {
                 val err = json.optString("error", "Unbekannter Fehler")
-                throw ApiException(if (err == "unauthorized") "Falscher Schlüssel" else err)
+                if (err == "unauthorized") throw ApiException("Falscher Schlüssel")
+                // Fachlicher Fehler (z. B. leere Aufgabe): Wiederholen bringt nichts
+                throw ApiException(err, retry = false)
             }
 
             val arr = json.getJSONArray("open")
-            val tasks = (0 until arr.length()).map { arr.getString(it) }
-            Prefs.saveTasks(ctx, tasks)
-            return tasks
+            return (0 until arr.length()).map { arr.getString(it) }
         } catch (e: IOException) {
             throw ApiException("Keine Verbindung")
         } finally {

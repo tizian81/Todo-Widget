@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Ausstehende Aktionen auch nach einem Neustart nachholen -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"
@@ -21,11 +23,17 @@
 
         <activity
             android:name=".AddTaskActivity"
-            android:exported="false"
+            android:exported="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
             android:theme="@style/DialogTheme"
-            android:windowSoftInputMode="stateVisible|adjustResize" />
+            android:windowSoftInputMode="stateVisible|adjustResize">
+            <intent-filter android:label="@string/share_label">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
 
         <receiver
             android:name=".TodoWidgetProvider"
@@ -42,5 +50,10 @@
             android:name=".TodoWidgetService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <service
+            android:name=".SyncJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

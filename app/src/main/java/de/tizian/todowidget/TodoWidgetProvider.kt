@@ -18,34 +18,34 @@ class TodoWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
         ids.forEach { mgr.updateAppWidget(it, buildViews(ctx, it)) }
-        runAsync(ctx) { Api.list(ctx) }
+        runAsync(ctx) { Sync.run(ctx) }
     }
 
     override fun onReceive(ctx: Context, intent: Intent) {
         super.onReceive(ctx, intent)
         when (intent.action) {
-            ACTION_REFRESH -> runAsync(ctx) { Api.list(ctx) }
+            ACTION_REFRESH -> runAsync(ctx) { Sync.run(ctx) }
 
             ACTION_CHECK -> {
                 val text = intent.getStringExtra(EXTRA_TEXT) ?: return
                 // Sofort aus dem Widget entfernen, dann im Doc abhaken
-                Prefs.setTasksLocal(ctx, Prefs.tasks(ctx) - text)
                 Prefs.pushDone(ctx, text)
+                Sync.enqueue(ctx, "complete", text)
                 updateAll(ctx)
-                runAsync(ctx) { Api.complete(ctx, text) }
+                runAsync(ctx) { Sync.run(ctx) }
             }
 
             ACTION_UNDO -> {
                 val text = Prefs.popDone(ctx) ?: return
                 // Sofort wieder anzeigen, dann im Doc zurück nach „Offen“
-                Prefs.setTasksLocal(ctx, Prefs.tasks(ctx) + text)
+                Sync.enqueue(ctx, "uncomplete", text)
                 updateAll(ctx)
-                runAsync(ctx, onError = { Prefs.pushDone(ctx, text) }) { Api.uncomplete(ctx, text) }
+                runAsync(ctx) { Sync.run(ctx) }
             }
         }
     }
 
-    private fun runAsync(ctx: Context, onError: () -> Unit = {}, block: () -> Unit) {
+    private fun runAsync(ctx: Context, block: () -> Unit) {
         if (!Prefs.isConfigured(ctx)) return
         val pending = goAsync()
         thread {
@@ -53,7 +53,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 block()
             } catch (e: Exception) {
                 Prefs.setError(ctx, e.message ?: "Fehler")
-                onError()
             } finally {
                 updateAll(ctx)
                 pending.finish()
@@ -78,6 +77,8 @@ class TodoWidgetProvider : AppWidgetProvider() {
         private fun statusText(ctx: Context): String {
             if (!Prefs.isConfigured(ctx)) return ""
             Prefs.error(ctx)?.let { return "⚠ $it" }
+            val n = Prefs.pending(ctx).size
+            if (n > 0) return "$n ausstehend"
             val t = Prefs.updatedAt(ctx)
             if (t == 0L) return ""
             return SimpleDateFormat("HH:mm", Locale.GERMANY).format(Date(t))
