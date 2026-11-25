@@ -11,6 +11,8 @@ object Prefs {
     private const val TASKS = "tasks"
     private const val UPDATED = "updated_at"
     private const val ERROR = "last_error"
+    private const val DONE = "recently_done"
+    private const val DONE_MAX = 10
 
     private fun p(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -45,6 +47,30 @@ object Prefs {
     /** Lokale Änderung (z. B. sofort abgehakt), ohne Zeitstempel zu ändern. */
     fun setTasksLocal(ctx: Context, tasks: List<String>) {
         p(ctx).edit().putString(TASKS, JSONArray(tasks).toString()).commit()
+    }
+
+    /** Zuletzt abgehakte Aufgaben (neueste am Ende) für „Rückgängig“. */
+    fun recentlyDone(ctx: Context): List<String> {
+        val raw = p(ctx).getString(DONE, "[]") ?: "[]"
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map { arr.getString(it) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun pushDone(ctx: Context, text: String) {
+        val list = (recentlyDone(ctx) + text).takeLast(DONE_MAX)
+        p(ctx).edit().putString(DONE, JSONArray(list).toString()).commit()
+    }
+
+    /** Nimmt die zuletzt abgehakte Aufgabe vom Stapel (null, wenn leer). */
+    fun popDone(ctx: Context): String? {
+        val list = recentlyDone(ctx)
+        if (list.isEmpty()) return null
+        p(ctx).edit().putString(DONE, JSONArray(list.dropLast(1)).toString()).commit()
+        return list.last()
     }
 
     fun updatedAt(ctx: Context): Long = p(ctx).getLong(UPDATED, 0L)

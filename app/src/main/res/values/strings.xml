@@ -14,4 +14,5 @@
     <string name="key_hint">Geheimer Schlüssel</string>
     <string name="save_test">Speichern &amp; testen</string>
     <string name="refresh">Aktualisieren</string>
+    <string name="undo">Rückgängig</string>
 </resources>

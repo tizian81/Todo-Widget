@@ -37,6 +37,7 @@ Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":tru
 
 - Aufgabe antippen → abgehakt (wandert im Doc nach „Erledigt“)
 - **+** → neue Aufgabe
+- **↶** → letzte abgehakte Aufgabe zurück nach „Offen“ (erscheint nach dem Abhaken, merkt sich die letzten 10)
 - **↻** → aktualisieren (sonst automatisch alle 30 Min.)
 - „To-Do“-Titel antippen → Einstellungen
 - Oben rechts steht die Uhrzeit der letzten Aktualisierung oder ein ⚠ mit Fehler.

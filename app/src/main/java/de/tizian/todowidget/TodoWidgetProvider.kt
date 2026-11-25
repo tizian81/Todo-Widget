@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.View
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,13 +30,22 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 val text = intent.getStringExtra(EXTRA_TEXT) ?: return
                 // Sofort aus dem Widget entfernen, dann im Doc abhaken
                 Prefs.setTasksLocal(ctx, Prefs.tasks(ctx) - text)
+                Prefs.pushDone(ctx, text)
                 updateAll(ctx)
                 runAsync(ctx) { Api.complete(ctx, text) }
+            }
+
+            ACTION_UNDO -> {
+                val text = Prefs.popDone(ctx) ?: return
+                // Sofort wieder anzeigen, dann im Doc zurück nach „Offen“
+                Prefs.setTasksLocal(ctx, Prefs.tasks(ctx) + text)
+                updateAll(ctx)
+                runAsync(ctx, onError = { Prefs.pushDone(ctx, text) }) { Api.uncomplete(ctx, text) }
             }
         }
     }
 
-    private fun runAsync(ctx: Context, block: () -> Unit) {
+    private fun runAsync(ctx: Context, onError: () -> Unit = {}, block: () -> Unit) {
         if (!Prefs.isConfigured(ctx)) return
         val pending = goAsync()
         thread {
@@ -43,6 +53,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 block()
             } catch (e: Exception) {
                 Prefs.setError(ctx, e.message ?: "Fehler")
+                onError()
             } finally {
                 updateAll(ctx)
                 pending.finish()
@@ -53,6 +64,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "de.tizian.todowidget.REFRESH"
         const val ACTION_CHECK = "de.tizian.todowidget.CHECK"
+        const val ACTION_UNDO = "de.tizian.todowidget.UNDO"
         const val EXTRA_TEXT = "text"
 
         fun updateAll(ctx: Context) {
@@ -102,6 +114,18 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.btn_refresh, refresh)
+
+            // Rückgängig (nur sichtbar, wenn etwas abgehakt wurde)
+            val undo = PendingIntent.getBroadcast(
+                ctx, 5,
+                Intent(ctx, TodoWidgetProvider::class.java).setAction(ACTION_UNDO),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.btn_undo, undo)
+            views.setViewVisibility(
+                R.id.btn_undo,
+                if (Prefs.recentlyDone(ctx).isEmpty()) View.GONE else View.VISIBLE
+            )
 
             // Hinzufügen
             val add = PendingIntent.getActivity(

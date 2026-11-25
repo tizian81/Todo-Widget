@@ -24,6 +24,9 @@ object Api {
     fun complete(ctx: Context, text: String): List<String> =
         call(ctx, mapOf("action" to "complete", "text" to text))
 
+    fun uncomplete(ctx: Context, text: String): List<String> =
+        call(ctx, mapOf("action" to "uncomplete", "text" to text))
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 
     private fun call(ctx: Context, params: Map<String, String>): List<String> {

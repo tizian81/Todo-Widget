@@ -36,6 +36,15 @@
             android:textSize="12sp" />
 
         <ImageView
+            android:id="@+id/btn_undo"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="@string/undo"
+            android:padding="6dp"
+            android:src="@drawable/ic_undo"
+            android:visibility="gone" />
+
+        <ImageView
             android:id="@+id/btn_refresh"
             android:layout_width="36dp"
             android:layout_height="36dp"

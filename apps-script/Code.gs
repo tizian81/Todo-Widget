@@ -5,6 +5,7 @@
  * Aufrufe (GET):  ?key=…&action=list
  *                 ?key=…&action=add&text=…
  *                 ?key=…&action=complete&text=…
+ *                 ?key=…&action=uncomplete&text=…   (Rückgängig)
  */
 
 // ID deines To-Do-Dokuments (aus der URL docs.google.com/document/d/<ID>/edit)
@@ -35,6 +36,13 @@ function doGet(e) {
         // Erst in „Erledigt“ einfügen, dann aus „Offen“ entfernen
         addTo_(body, 'erledigt', text, item);
         item.removeFromParent();
+      }
+    } else if (action === 'uncomplete') {
+      // Nur zurückholen, wenn die Aufgabe nicht schon offen ist
+      if (text && !findOpen_(body, text)) {
+        const done = findDone_(body, text);
+        addTo_(body, 'offen', text, done);
+        if (done) done.removeFromParent();
       }
     } else if (action !== 'list') {
       return json_({ ok: false, error: 'Unbekannte Aktion' });
@@ -91,6 +99,14 @@ function findOpen_(body, text) {
     return x.el.getText().trim() === text;
   })[0];
   return hit ? hit.el : null;
+}
+
+/** Zuletzt hinzugefügter passender Eintrag unter „Erledigt“ (oder null). */
+function findDone_(body, text) {
+  const hits = itemsUnder_(body, 'erledigt').filter(function (x) {
+    return x.el.getText().trim() === text;
+  });
+  return hits.length ? hits[hits.length - 1].el : null;
 }
 
 /** Fügt einen Eintrag am Ende des Abschnitts ein (legt die Überschrift notfalls an). */
