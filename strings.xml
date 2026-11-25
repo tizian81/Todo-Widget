@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">To-Do Widget</string>
+    <string name="widget_description">Deine To-Do-Liste aus Google Docs</string>
+    <string name="widget_title">To-Do</string>
+    <string name="empty_list">Keine offenen Aufgaben</string>
+    <string name="not_configured">In der App einrichten</string>
+    <string name="add_title">Neue Aufgabe</string>
+    <string name="add_hint">Was steht an?</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="add">Hinzufügen</string>
+    <string name="settings_intro">Trag hier die Web-App-URL deines Apps Scripts und deinen geheimen Schlüssel ein. Danach Homescreen lange drücken → Widgets → To-Do Widget.</string>
+    <string name="url_hint">Script-URL (https://script.google.com/macros/s/…/exec)</string>
+    <string name="key_hint">Geheimer Schlüssel</string>
+    <string name="save_test">Speichern &amp; testen</string>
+    <string name="refresh">Aktualisieren</string>
+</resources>
