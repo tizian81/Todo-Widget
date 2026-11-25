@@ -66,10 +66,10 @@ class TodoWidgetProvider : AppWidgetProvider() {
         thread {
             try {
                 block()
-            } catch (e: Exception) {
-                Prefs.setError(ctx, e.message ?: "Fehler")
+            } catch (e: Throwable) {
+                Prefs.setError(ctx, App.describe(e))
             } finally {
-                updateAll(ctx)
+                updateAllSafe(ctx)
                 pending.finish()
             }
         }
@@ -82,6 +82,14 @@ class TodoWidgetProvider : AppWidgetProvider() {
         const val ACTION_EDIT_MODE = "de.tizian.todowidget.EDIT_MODE"
         const val EXTRA_TEXT = "text"
         const val EXTRA_INDEX = "index"
+
+        /** Wie [updateAll], aber ein Fehler beim Zeichnen beendet nie die App. */
+        fun updateAllSafe(ctx: Context) {
+            try {
+                updateAll(ctx)
+            } catch (ignored: Throwable) {
+            }
+        }
 
         fun updateAll(ctx: Context) {
             val mgr = AppWidgetManager.getInstance(ctx)

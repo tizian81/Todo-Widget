@@ -16,6 +16,7 @@ object Prefs {
     private const val DONE_MAX = 10
     private const val PENDING = "pending_ops"
     private const val EDIT_MODE = "edit_mode"
+    private const val CRASH = "last_crash"
 
     /**
      * Eine Aktion für das Script.
@@ -127,6 +128,14 @@ object Prefs {
     fun editMode(ctx: Context): Boolean = p(ctx).getBoolean(EDIT_MODE, false)
     fun setEditMode(ctx: Context, on: Boolean) {
         p(ctx).edit().putBoolean(EDIT_MODE, on).commit()
+    }
+
+    fun crash(ctx: Context): String? = p(ctx).getString(CRASH, null)
+    fun setCrash(ctx: Context, trace: String) {
+        p(ctx).edit().putString(CRASH, trace).commit()
+    }
+    fun clearCrash(ctx: Context) {
+        p(ctx).edit().remove(CRASH).commit()
     }
 
     fun updatedAt(ctx: Context): Long = p(ctx).getLong(UPDATED, 0L)

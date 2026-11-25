@@ -63,18 +63,25 @@ object Sync {
 
     /** Regelmäßig im Hintergrund aktualisieren (alle 15 Min., nur mit Netz). */
     fun schedulePeriodic(ctx: Context) {
-        val js = ctx.getSystemService(JobScheduler::class.java) ?: return
-        if (js.getPendingJob(JOB_PERIODIC) != null) return
-        val job = JobInfo.Builder(JOB_PERIODIC, ComponentName(ctx, SyncJobService::class.java))
-            .setPeriodic(PERIOD_MS)
-            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-            .setPersisted(true)
-            .build()
-        js.schedule(job)
+        try {
+            val js = ctx.getSystemService(JobScheduler::class.java) ?: return
+            if (js.getPendingJob(JOB_PERIODIC) != null) return
+            val job = JobInfo.Builder(JOB_PERIODIC, ComponentName(ctx, SyncJobService::class.java))
+                .setPeriodic(PERIOD_MS)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .setPersisted(true)
+                .build()
+            js.schedule(job)
+        } catch (e: Throwable) {
+            Prefs.setError(ctx, App.describe(e))
+        }
     }
 
     fun cancelPeriodic(ctx: Context) {
-        ctx.getSystemService(JobScheduler::class.java)?.cancel(JOB_PERIODIC)
+        try {
+            ctx.getSystemService(JobScheduler::class.java)?.cancel(JOB_PERIODIC)
+        } catch (ignored: Throwable) {
+        }
     }
 
     /** Lässt [SyncJobService] laufen, sobald eine Netzverbindung besteht. */
@@ -84,6 +91,10 @@ object Sync {
             .setBackoffCriteria(30_000, JobInfo.BACKOFF_POLICY_EXPONENTIAL)
             .setPersisted(true)
             .build()
-        ctx.getSystemService(JobScheduler::class.java)?.schedule(job)
+        try {
+            ctx.getSystemService(JobScheduler::class.java)?.schedule(job)
+        } catch (e: Throwable) {
+            Prefs.setError(ctx, App.describe(e))
+        }
     }
 }

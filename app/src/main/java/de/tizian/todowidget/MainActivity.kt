@@ -21,8 +21,15 @@ class MainActivity : Activity() {
         url.setText(Prefs.url(this))
         key.setText(Prefs.key(this))
 
+        // Gab es einen Absturz? Bericht anzeigen (lange drücken → Kopieren)
+        Prefs.crash(this)?.let {
+            result.setTextIsSelectable(true)
+            result.text = "Fehlerbericht vom letzten Absturz (lange drücken → alles markieren → Kopieren):\n\n$it"
+        }
+
         save.setOnClickListener {
             Prefs.saveConfig(this, url.text.toString(), key.text.toString())
+            Prefs.clearCrash(this)
             Sync.schedulePeriodic(this)
             save.isEnabled = false
             result.text = "Verbinde …"
@@ -30,13 +37,13 @@ class MainActivity : Activity() {
                 val msg = try {
                     val tasks = Sync.run(this)
                     "✓ Verbunden – ${tasks.size} offene Aufgabe(n)"
-                } catch (e: Exception) {
-                    "✗ ${e.message}"
+                } catch (e: Throwable) {
+                    "✗ ${App.describe(e)}"
                 }
                 runOnUiThread {
                     result.text = msg
                     save.isEnabled = true
-                    TodoWidgetProvider.updateAll(this)
+                    TodoWidgetProvider.updateAllSafe(this)
                 }
             }
         }

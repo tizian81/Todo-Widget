@@ -11,8 +11,8 @@ android {
         applicationId = "de.tizian.todowidget"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.4.1"
     }
 
     // Fester Schlüssel, damit spätere Versionen über die alte installiert werden können

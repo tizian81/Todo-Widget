@@ -13,10 +13,10 @@ class SyncJobService : JobService() {
             thread {
                 try {
                     Sync.run(applicationContext)
-                } catch (e: Exception) {
-                    Prefs.setError(applicationContext, e.message ?: "Fehler")
+                } catch (e: Throwable) {
+                    Prefs.setError(applicationContext, App.describe(e))
                 } finally {
-                    TodoWidgetProvider.updateAll(applicationContext)
+                    TodoWidgetProvider.updateAllSafe(applicationContext)
                     jobFinished(params, false)  // läuft ohnehin periodisch weiter
                 }
             }
@@ -29,11 +29,11 @@ class SyncJobService : JobService() {
             } catch (e: ApiException) {
                 Prefs.setError(applicationContext, e.message ?: "Fehler")
                 retry = e.retry && Prefs.pending(applicationContext).isNotEmpty()
-            } catch (e: Exception) {
-                Prefs.setError(applicationContext, e.message ?: "Fehler")
+            } catch (e: Throwable) {
+                Prefs.setError(applicationContext, App.describe(e))
                 retry = Prefs.pending(applicationContext).isNotEmpty()
             } finally {
-                TodoWidgetProvider.updateAll(applicationContext)
+                TodoWidgetProvider.updateAllSafe(applicationContext)
                 jobFinished(params, retry)
             }
         }
