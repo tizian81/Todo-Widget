@@ -11,12 +11,13 @@ import android.content.Context
  * Ohne Netz bleiben sie liegen und werden nachgeholt, sobald wieder Netz da ist.
  */
 object Sync {
-    private const val JOB_ID = 1001
+    const val JOB_ID = 1001
+    const val JOB_PERIODIC = 1002
+    private const val PERIOD_MS = 15 * 60 * 1000L  // Android-Minimum
     private val lock = Any()
 
     /** Neue Aktion merken, lokal anwenden und Nachholen einplanen. */
-    fun enqueue(ctx: Context, action: String, text: String) {
-        val op = Prefs.Op(action, text)
+    fun enqueue(ctx: Context, op: Prefs.Op) {
         Prefs.addPending(ctx, op)
         Prefs.setTasksLocal(ctx, apply(Prefs.tasks(ctx), op))
         schedule(ctx)
@@ -39,7 +40,7 @@ object Sync {
         while (true) {
             val op = Prefs.pending(ctx).firstOrNull() ?: break
             try {
-                latest = Api.send(ctx, op.action, op.text)
+                latest = Api.send(ctx, op)
                 Prefs.removeFirstPending(ctx, op)
             } catch (e: ApiException) {
                 if (e.retry) {
@@ -61,10 +62,38 @@ object Sync {
     }
 
     private fun apply(list: List<String>, op: Prefs.Op): List<String> = when (op.action) {
-        "add" -> list + op.text
-        "complete" -> list - op.text
-        "uncomplete" -> if (op.text in list) list else list + op.text
+        "add", "uncomplete" -> list + op.text
+        "complete" -> {
+            val i = nthIndex(list, op.text, op.n)
+            if (i < 0) list else list.filterIndexed { idx, _ -> idx != i }
+        }
+        "edit" -> {
+            val i = nthIndex(list, op.text, op.n)
+            if (i < 0) list else list.mapIndexed { idx, t -> if (idx == i) op.newText else t }
+        }
         else -> list
+    }
+
+    /** Position des n-ten Vorkommens von [text] (sonst des ersten, sonst -1). Wie im Script. */
+    private fun nthIndex(list: List<String>, text: String, n: Int): Int {
+        val hits = list.indices.filter { list[it] == text }
+        return hits.getOrNull(n) ?: hits.firstOrNull() ?: -1
+    }
+
+    /** Regelmäßig im Hintergrund aktualisieren (alle 15 Min., nur mit Netz). */
+    fun schedulePeriodic(ctx: Context) {
+        val js = ctx.getSystemService(JobScheduler::class.java) ?: return
+        if (js.getPendingJob(JOB_PERIODIC) != null) return
+        val job = JobInfo.Builder(JOB_PERIODIC, ComponentName(ctx, SyncJobService::class.java))
+            .setPeriodic(PERIOD_MS)
+            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setPersisted(true)
+            .build()
+        js.schedule(job)
+    }
+
+    fun cancelPeriodic(ctx: Context) {
+        ctx.getSystemService(JobScheduler::class.java)?.cancel(JOB_PERIODIC)
     }
 
     /** Lässt [SyncJobService] laufen, sobald eine Netzverbindung besteht. */

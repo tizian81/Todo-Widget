@@ -9,7 +9,12 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 
+/** Dialog zum Hinzufügen (auch über „Teilen“) und Bearbeiten einer Aufgabe. */
 class AddTaskActivity : Activity() {
+
+    companion object {
+        const val EXTRA_EDIT = "edit"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,6 +24,21 @@ class AddTaskActivity : Activity() {
         val input = findViewById<EditText>(R.id.input)
         val ok = findViewById<Button>(R.id.btn_ok)
         val error = findViewById<TextView>(R.id.error)
+
+        // Bearbeiten: Originaltext und Vorkommen aus dem Widget
+        val editing = intent?.getBooleanExtra(EXTRA_EDIT, false) == true
+        val original = intent?.getStringExtra(TodoWidgetProvider.EXTRA_TEXT) ?: ""
+        val index = intent?.getIntExtra(TodoWidgetProvider.EXTRA_INDEX, 0) ?: 0
+        if (editing) {
+            // Bearbeiten-Modus gilt nur für einen Eintrag
+            Prefs.setEditMode(this, false)
+            TodoWidgetProvider.updateAll(this)
+            if (original.isEmpty()) { finish(); return }
+            findViewById<TextView>(R.id.dialog_title).setText(R.string.edit_title)
+            ok.setText(R.string.save)
+            input.setText(original)
+            input.setSelection(original.length)
+        }
 
         findViewById<Button>(R.id.btn_cancel).setOnClickListener { finish() }
 
@@ -33,16 +53,32 @@ class AddTaskActivity : Activity() {
             }
         }
 
+        var confirmedDuplicate: String? = null
+
         fun submit() {
-            val text = input.text.toString().trim()
+            val text = input.text.toString().trim().replace(Regex("\\s+"), " ")
             if (text.isEmpty()) return
+            if (editing && text == original) { finish(); return }
             if (!Prefs.isConfigured(this)) {
                 error.text = getString(R.string.not_configured)
                 error.visibility = View.VISIBLE
                 return
             }
+
+            // Doppelte Aufgabe? Erst warnen, beim zweiten Tippen trotzdem eintragen
+            val others = Prefs.tasks(this).toMutableList()
+            if (editing) others.remove(original)
+            val duplicate = others.any { it.equals(text, ignoreCase = true) }
+            if (duplicate && confirmedDuplicate != text) {
+                confirmedDuplicate = text
+                error.text = getString(R.string.duplicate_warning)
+                error.visibility = View.VISIBLE
+                return
+            }
+
             // Sofort lokal übernehmen; gesendet wird im Hintergrund (auch offline)
-            Sync.enqueue(this, "add", text)
+            val op = if (editing) Prefs.Op("edit", original, index, text) else Prefs.Op("add", text)
+            Sync.enqueue(this, op)
             TodoWidgetProvider.updateAll(this)
             sendBroadcast(
                 Intent(this, TodoWidgetProvider::class.java)

@@ -16,4 +16,9 @@
     <string name="refresh">Aktualisieren</string>
     <string name="undo">Rückgängig</string>
     <string name="share_label">Zur To-Do-Liste</string>
+    <string name="edit">Bearbeiten</string>
+    <string name="edit_title">Aufgabe bearbeiten</string>
+    <string name="save">Speichern</string>
+    <string name="edit_hint">Aufgabe zum Bearbeiten antippen</string>
+    <string name="duplicate_warning">Steht schon auf der Liste – nochmal tippen, um sie trotzdem einzutragen.</string>
 </resources>

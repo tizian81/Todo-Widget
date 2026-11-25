@@ -6,6 +6,9 @@
  *                 ?key=…&action=add&text=…
  *                 ?key=…&action=complete&text=…
  *                 ?key=…&action=uncomplete&text=…   (Rückgängig)
+ *                 ?key=…&action=edit&text=…&new=…
+ *
+ * n=… (optional) wählt bei gleichlautenden Aufgaben das n-te Vorkommen (0 = erstes).
  */
 
 // ID deines To-Do-Dokuments (aus der URL docs.google.com/document/d/<ID>/edit)
@@ -26,23 +29,33 @@ function doGet(e) {
     const body = DocumentApp.openById(DOC_ID).getBody();
     const action = p.action || 'list';
     const text = (p.text || '').trim();
+    const n = parseInt(p.n, 10) || 0;
 
     if (action === 'add') {
       if (!text) return json_({ ok: false, error: 'Leere Aufgabe' });
       addTo_(body, 'offen', text, null);
     } else if (action === 'complete') {
-      const item = findOpen_(body, text);
+      const item = findOpen_(body, text, n);
       if (item) {
         // Erst in „Erledigt“ einfügen, dann aus „Offen“ entfernen
         addTo_(body, 'erledigt', text, item);
         item.removeFromParent();
       }
     } else if (action === 'uncomplete') {
-      // Nur zurückholen, wenn die Aufgabe nicht schon offen ist
-      if (text && !findOpen_(body, text)) {
-        const done = findDone_(body, text);
+      // Zuletzt erledigten passenden Eintrag zurück nach „Offen“ holen
+      // (funktioniert auch, wenn eine gleichlautende Aufgabe noch offen ist)
+      const done = text ? findDone_(body, text) : null;
+      if (done) {
         addTo_(body, 'offen', text, done);
-        if (done) done.removeFromParent();
+        done.removeFromParent();
+      }
+    } else if (action === 'edit') {
+      const newText = (p['new'] || '').trim();
+      if (!newText) return json_({ ok: false, error: 'Leere Aufgabe' });
+      const item = findOpen_(body, text, n);
+      if (item) {
+        item.setText(newText);
+        item.editAsText().setStrikethrough(false);
       }
     } else if (action !== 'list') {
       return json_({ ok: false, error: 'Unbekannte Aktion' });
@@ -94,10 +107,12 @@ function listOpen_(body) {
     .filter(function (t) { return t.length > 0; });
 }
 
-function findOpen_(body, text) {
-  const hit = itemsUnder_(body, 'offen').filter(function (x) {
+/** n-ter offener Eintrag mit diesem Text (sonst der erste, sonst null). */
+function findOpen_(body, text, n) {
+  const hits = itemsUnder_(body, 'offen').filter(function (x) {
     return x.el.getText().trim() === text;
-  })[0];
+  });
+  const hit = hits[n || 0] || hits[0];
   return hit ? hit.el : null;
 }
 

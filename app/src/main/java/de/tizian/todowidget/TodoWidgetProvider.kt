@@ -16,8 +16,17 @@ import kotlin.concurrent.thread
 
 class TodoWidgetProvider : AppWidgetProvider() {
 
+    override fun onEnabled(ctx: Context) {
+        Sync.schedulePeriodic(ctx)
+    }
+
+    override fun onDisabled(ctx: Context) {
+        Sync.cancelPeriodic(ctx)
+    }
+
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
         ids.forEach { mgr.updateAppWidget(it, buildViews(ctx, it)) }
+        Sync.schedulePeriodic(ctx)
         runAsync(ctx) { Sync.run(ctx) }
     }
 
@@ -28,9 +37,10 @@ class TodoWidgetProvider : AppWidgetProvider() {
 
             ACTION_CHECK -> {
                 val text = intent.getStringExtra(EXTRA_TEXT) ?: return
+                val n = intent.getIntExtra(EXTRA_INDEX, 0)
                 // Sofort aus dem Widget entfernen, dann im Doc abhaken
                 Prefs.pushDone(ctx, text)
-                Sync.enqueue(ctx, "complete", text)
+                Sync.enqueue(ctx, Prefs.Op("complete", text, n))
                 updateAll(ctx)
                 runAsync(ctx) { Sync.run(ctx) }
             }
@@ -38,9 +48,14 @@ class TodoWidgetProvider : AppWidgetProvider() {
             ACTION_UNDO -> {
                 val text = Prefs.popDone(ctx) ?: return
                 // Sofort wieder anzeigen, dann im Doc zurück nach „Offen“
-                Sync.enqueue(ctx, "uncomplete", text)
+                Sync.enqueue(ctx, Prefs.Op("uncomplete", text))
                 updateAll(ctx)
                 runAsync(ctx) { Sync.run(ctx) }
+            }
+
+            ACTION_EDIT_MODE -> {
+                Prefs.setEditMode(ctx, !Prefs.editMode(ctx))
+                updateAll(ctx)
             }
         }
     }
@@ -64,7 +79,9 @@ class TodoWidgetProvider : AppWidgetProvider() {
         const val ACTION_REFRESH = "de.tizian.todowidget.REFRESH"
         const val ACTION_CHECK = "de.tizian.todowidget.CHECK"
         const val ACTION_UNDO = "de.tizian.todowidget.UNDO"
+        const val ACTION_EDIT_MODE = "de.tizian.todowidget.EDIT_MODE"
         const val EXTRA_TEXT = "text"
+        const val EXTRA_INDEX = "index"
 
         fun updateAll(ctx: Context) {
             val mgr = AppWidgetManager.getInstance(ctx)
@@ -76,6 +93,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
 
         private fun statusText(ctx: Context): String {
             if (!Prefs.isConfigured(ctx)) return ""
+            if (Prefs.editMode(ctx)) return ctx.getString(R.string.edit_hint)
             Prefs.error(ctx)?.let { return "⚠ $it" }
             val n = Prefs.pending(ctx).size
             if (n > 0) return "$n ausstehend"
@@ -100,13 +118,36 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 ctx.getString(if (Prefs.isConfigured(ctx)) R.string.empty_list else R.string.not_configured)
             )
 
-            // Antippen einer Aufgabe = abhaken
-            val checkTemplate = PendingIntent.getBroadcast(
-                ctx, 1,
-                Intent(ctx, TodoWidgetProvider::class.java).setAction(ACTION_CHECK),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            // Antippen einer Aufgabe = abhaken, im Bearbeiten-Modus = Editor öffnen
+            val editMode = Prefs.editMode(ctx)
+            val itemTemplate = if (editMode) {
+                PendingIntent.getActivity(
+                    ctx, 6,
+                    Intent(ctx, AddTaskActivity::class.java)
+                        .putExtra(AddTaskActivity.EXTRA_EDIT, true)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+            } else {
+                PendingIntent.getBroadcast(
+                    ctx, 1,
+                    Intent(ctx, TodoWidgetProvider::class.java).setAction(ACTION_CHECK),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+            }
+            views.setPendingIntentTemplate(R.id.list, itemTemplate)
+
+            // Bearbeiten-Modus umschalten
+            val editToggle = PendingIntent.getBroadcast(
+                ctx, 7,
+                Intent(ctx, TodoWidgetProvider::class.java).setAction(ACTION_EDIT_MODE),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setPendingIntentTemplate(R.id.list, checkTemplate)
+            views.setOnClickPendingIntent(R.id.btn_edit, editToggle)
+            views.setImageViewResource(
+                R.id.btn_edit,
+                if (editMode) R.drawable.ic_edit_active else R.drawable.ic_edit
+            )
 
             // Aktualisieren
             val refresh = PendingIntent.getBroadcast(

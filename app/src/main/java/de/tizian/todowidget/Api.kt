@@ -22,9 +22,12 @@ object Api {
 
     fun list(ctx: Context): List<String> = call(ctx, mapOf("action" to "list"))
 
-    /** action = add | complete | uncomplete */
-    fun send(ctx: Context, action: String, text: String): List<String> =
-        call(ctx, mapOf("action" to action, "text" to text))
+    /** op.action = add | complete | uncomplete | edit */
+    fun send(ctx: Context, op: Prefs.Op): List<String> {
+        val params = mutableMapOf("action" to op.action, "text" to op.text, "n" to op.n.toString())
+        if (op.action == "edit") params["new"] = op.newText
+        return call(ctx, params)
+    }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 

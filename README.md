@@ -39,8 +39,10 @@ Test im Browser: `<URL>?action=list&key=<DEIN_SCHLÜSSEL>` → sollte `{"ok":tru
 - **+** → neue Aufgabe
 - **Teilen** aus einer anderen App → „Zur To-Do-Liste“ → Text prüfen → Hinzufügen
 - Ohne Netz: Abhaken/Hinzufügen funktioniert trotzdem, oben steht „N ausstehend“; wird automatisch nachgeholt, sobald wieder Netz da ist
+- **✎** → Bearbeiten-Modus: Aufgabe antippen → Text ändern → Speichern (danach wieder normaler Modus)
+- Doppelte Aufgaben: Beim Hinzufügen kommt ein Hinweis, nochmal tippen trägt sie trotzdem ein. Abhaken/Bearbeiten trifft genau den angetippten Eintrag.
 - **↶** → letzte abgehakte Aufgabe zurück nach „Offen“ (erscheint nach dem Abhaken, merkt sich die letzten 10)
-- **↻** → aktualisieren (sonst automatisch alle 30 Min.)
+- **↻** → aktualisieren (sonst automatisch etwa alle 15 Min., wenn Netz da ist)
 - „To-Do“-Titel antippen → Einstellungen
 - Oben rechts steht die Uhrzeit der letzten Aktualisierung oder ein ⚠ mit Fehler.
 

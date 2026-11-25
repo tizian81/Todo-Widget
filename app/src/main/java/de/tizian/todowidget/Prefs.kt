@@ -15,8 +15,14 @@ object Prefs {
     private const val DONE = "recently_done"
     private const val DONE_MAX = 10
     private const val PENDING = "pending_ops"
+    private const val EDIT_MODE = "edit_mode"
 
-    data class Op(val action: String, val text: String)
+    /**
+     * Eine Aktion für das Script.
+     * @param n       welches Vorkommen bei gleichlautenden Aufgaben (0 = erstes)
+     * @param newText neuer Text (nur bei „edit“)
+     */
+    data class Op(val action: String, val text: String, val n: Int = 0, val newText: String = "")
 
     private fun p(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -85,7 +91,7 @@ object Prefs {
             val arr = JSONArray(raw)
             (0 until arr.length()).map {
                 val o = arr.getJSONObject(it)
-                Op(o.getString("a"), o.getString("t"))
+                Op(o.getString("a"), o.getString("t"), o.optInt("n", 0), o.optString("x", ""))
             }
         } catch (e: Exception) {
             emptyList()
@@ -94,7 +100,9 @@ object Prefs {
 
     private fun savePending(ctx: Context, ops: List<Op>) {
         val arr = JSONArray()
-        ops.forEach { arr.put(JSONObject().put("a", it.action).put("t", it.text)) }
+        ops.forEach {
+            arr.put(JSONObject().put("a", it.action).put("t", it.text).put("n", it.n).put("x", it.newText))
+        }
         p(ctx).edit().putString(PENDING, arr.toString()).commit()
     }
 
@@ -106,6 +114,12 @@ object Prefs {
     fun removeFirstPending(ctx: Context, op: Op) {
         val ops = pending(ctx)
         if (ops.firstOrNull() == op) savePending(ctx, ops.drop(1))
+    }
+
+    /** Bearbeiten-Modus im Widget: Antippen öffnet den Editor statt abzuhaken. */
+    fun editMode(ctx: Context): Boolean = p(ctx).getBoolean(EDIT_MODE, false)
+    fun setEditMode(ctx: Context, on: Boolean) {
+        p(ctx).edit().putBoolean(EDIT_MODE, on).commit()
     }
 
     fun updatedAt(ctx: Context): Long = p(ctx).getLong(UPDATED, 0L)

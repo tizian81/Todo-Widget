@@ -23,6 +23,7 @@ class MainActivity : Activity() {
 
         save.setOnClickListener {
             Prefs.saveConfig(this, url.text.toString(), key.text.toString())
+            Sync.schedulePeriodic(this)
             save.isEnabled = false
             result.text = "Verbinde …"
             thread {

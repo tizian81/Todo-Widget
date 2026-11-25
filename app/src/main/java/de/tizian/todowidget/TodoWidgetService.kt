@@ -11,19 +11,31 @@ class TodoWidgetService : RemoteViewsService() {
 
     private class Factory(private val ctx: Context) : RemoteViewsFactory {
         private var items: List<String> = emptyList()
+        private var editMode = false
 
         override fun onCreate() {}
-        override fun onDataSetChanged() { items = Prefs.tasks(ctx) }
+        override fun onDataSetChanged() {
+            items = Prefs.tasks(ctx)
+            editMode = Prefs.editMode(ctx)
+        }
         override fun onDestroy() {}
         override fun getCount(): Int = items.size
 
         override fun getViewAt(position: Int): RemoteViews {
             val views = RemoteViews(ctx.packageName, R.layout.widget_item)
             val text = items.getOrNull(position) ?: return views
+            // Welches Vorkommen bei gleichlautenden Aufgaben (0 = erstes)
+            val n = items.take(position).count { it == text }
             views.setTextViewText(R.id.text, text)
+            views.setImageViewResource(
+                R.id.check,
+                if (editMode) R.drawable.ic_edit_active else R.drawable.ic_checkbox
+            )
             views.setOnClickFillInIntent(
                 R.id.item_root,
-                Intent().putExtra(TodoWidgetProvider.EXTRA_TEXT, text)
+                Intent()
+                    .putExtra(TodoWidgetProvider.EXTRA_TEXT, text)
+                    .putExtra(TodoWidgetProvider.EXTRA_INDEX, n)
             )
             return views
         }
